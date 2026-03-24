@@ -181,7 +181,7 @@ header {
   text-transform: uppercase;
 }
 .feed-title i {
-  margin-left: 10px;
+  margin-right: 8px;
 }
 .feed-meta {
   display: flex;
