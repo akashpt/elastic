@@ -53,12 +53,15 @@ header {
 .logo-box {
   background: #fff;
   border-radius: 8px;
-  width: 68px;
+  width: 135px;
   height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.logo-box img{
+  width: 125px;
 }
 .logo-box span {
   font-family: "Rajdhani", sans-serif;
