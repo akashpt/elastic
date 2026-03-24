@@ -14,7 +14,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Sliver Design System")
+        self.setWindowTitle("Elastic Design System")
         self.resize(1200, 800)
 
         # WebEngine View
@@ -44,33 +44,10 @@ class MainWindow(QMainWindow):
         else:
             print(f"❌ Page not found: {file_path}")
 
-    def open_report_window(self):
-        if (
-            hasattr(self, "report_window")
-            and self.report_window
-            and self.report_window.isVisible()
-        ):
-            self.report_window.activateWindow()
-            return
-
-        self.report_window = QMainWindow()
-        self.report_window.setWindowTitle("Report")
-        self.report_window.setFixedSize(1000, 700)
-
-        view = QWebEngineView()
-        self.report_window.setCentralWidget(view)
-
-        report_file = (TEMPLATES_DIR / "report.html").resolve()
-
-        if report_file.exists():
-            view.load(QUrl.fromLocalFile(str(report_file)))
-        else:
-            print(f"❌ report.html not found: {report_file}")
-
-        self.report_window.show()
+    
 
     def closeEvent(self, event):
-        self.bridge.stop_camera()  # Ask bridge to cleanup camera
+        self.bridge.stopCamera()  # Ask bridge to cleanup camera
         super().closeEvent(event)
 
     def on_load_finished(self):
