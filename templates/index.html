@@ -13,7 +13,9 @@
   <body>
     <header>
       <div class="logo-area">
-        <div class="logo-box"><img src="../static/img/logo/logo.png" alt=""></div>
+        <div class="logo-box">
+          <img src="../static/img/logo/logo.png" alt="" />
+        </div>
         <div class="title-block">
           <h1>Elastic</h1>
           <p>Industrial Vision System</p>
@@ -61,10 +63,13 @@
               autoplay
               muted
               playsinline
-              class="cam-video"
-              style="display: none"
-            >
-          </video>
+              style="
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: none;
+              "
+            ></video>
             <canvas id="snap-canvas" style="display: none"></canvas>
 
             <!-- NO ACTIVE FEED with Font Awesome CRT Icon -->
@@ -100,14 +105,14 @@
               id="tab-det"
               onclick="switchTab('detection')"
             >
-                Detection
+              Detection
             </button>
             <button
               class="ctrl-tab"
               id="tab-trn"
               onclick="switchTab('training')"
             >
-                Training
+              Training
             </button>
           </div>
 
@@ -529,17 +534,11 @@
       // Webcam
       const video = document.getElementById("cam-video");
       let camStream = null;
-      const CAMERA_CONSTRAINTS = {
-        facingMode: { ideal: "environment" },
-        width: { ideal: 1080 },
-        height: { ideal: 1920 },
-        aspectRatio: { ideal: 9 / 16 },
-      };
 
       async function startCamera() {
         try {
           camStream = await navigator.mediaDevices.getUserMedia({
-            video: CAMERA_CONSTRAINTS,
+            video: { facingMode: "environment" },
             audio: false,
           });
           video.srcObject = camStream;

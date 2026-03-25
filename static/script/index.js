@@ -1,15 +1,154 @@
+let bridge = null;
+
+// ================= INIT =================
+document.addEventListener("DOMContentLoaded", function () {
+  new QWebChannel(qt.webChannelTransport, function (channel) {
+    bridge = channel.objects.bridge;
+
+    console.log("✅ Bridge connected");
+
+    // receive frame from Python
+    bridge.frame_signal.connect(function (imageData) {
+      const img = document.getElementById("cam-video");
+
+      img.src = "data:image/jpeg;base64," + imageData;
+      img.style.display = "block";
+
+      document.getElementById("no-feed-msg").style.display = "none";
+    });
  
-      // Clock
-      (function tick() {
-        const n = new Date();
-        document.getElementById("clock").textContent =
-          String(n.getHours()).padStart(2, "0") +
-          ":" +
-          String(n.getMinutes()).padStart(2, "0") +
-          ":" +
-          String(n.getSeconds()).padStart(2, "0");
-        setTimeout(tick, 1000);
-      })();
+      bridge.defect_signal.connect(function (imagePath) {
+
+    const container = document.getElementById("defect-container");
+
+    const img = document.createElement("img");
+
+    // show preview
+    img.src = "file:///" + imagePath.replace(/\\/g, "/");
+    img.style.width = "100px";
+    img.style.margin = "5px";
+    img.style.cursor = "pointer";
+
+    // 🔥 CLICK → OPEN VIEWER
+    img.onclick = function () {
+      bridge.openImageViewer(imagePath);
+    };
+
+    container.prepend(img);
+});
+
+  startClock();
+});
+});
+
+// ================= CLOCK =================
+function startClock() {
+  (function tick() {
+    const n = new Date();
+    document.getElementById("clock").textContent =
+      String(n.getHours()).padStart(2, "0") +
+      ":" +
+      String(n.getMinutes()).padStart(2, "0") +
+      ":" +
+      String(n.getSeconds()).padStart(2, "0");
+    setTimeout(tick, 1000);
+  })();
+}
+
+// ================= GLOBAL STATE =================
+let detRunning = false;
+
+
+// ================= DETECTION =================
+function startDetection() {
+  if (!bridge) {
+    console.error("❌ Bridge not ready");
+    return;
+  }
+
+  if (detRunning) return;
+
+  detRunning = true;
+
+  console.log("🚀 Detection started");
+
+  document.getElementById("hdr-status").textContent = "RUNNING";
+  document.getElementById("feed-card").classList.add("feed-running");
+
+  bridge.startDetection();
+}
+
+function stopDetection() {
+  if (!bridge) return;
+
+  detRunning = false;
+
+  console.log("🛑 Detection stopped");
+
+  document.getElementById("hdr-status").textContent = "STANDBY";
+  document.getElementById("feed-card").classList.remove("feed-running");
+  bridge.stopDetection();
+
+  document.getElementById("cam-video").style.display = "none";
+  document.getElementById("no-feed-msg").style.display = "flex";
+}
+
+
+// ================= TRAINING =================
+let trainRunning = false;
+
+function startTraining() {
+  if (!bridge) return;
+  if (trainRunning) return;
+
+  trainRunning = true;
+
+  document.getElementById("hdr-status").textContent = "TRAINING";
+
+  // ✅ FIX BUTTONS
+  document.getElementById("train-start-btn").disabled = true;
+  document.getElementById("train-stop-btn").disabled = false;
+
+  bridge.startTraining();
+}
+
+function stopTraining() {
+  if (!bridge) return;
+  if (!trainRunning) return;
+
+  trainRunning = false;
+
+  document.getElementById("hdr-status").textContent = "STANDBY";
+
+  // ✅ FIX BUTTONS
+  document.getElementById("train-start-btn").disabled = false;
+  document.getElementById("train-stop-btn").disabled = true;
+
+  bridge.stopTraining();
+}
+// ================= TAB SWITCH =================
+function switchTab(tab) {
+  if (detRunning || trainRunning) return;
+
+  document.getElementById("body-detection").style.display =
+    tab === "detection" ? "flex" : "none";
+
+  document.getElementById("body-training").style.display =
+    tab === "training" ? "flex" : "none";
+
+  document.getElementById("tab-det").classList.toggle(
+    "active",
+    tab === "detection"
+  );
+  document.getElementById("tab-trn").classList.toggle(
+    "active",
+    tab === "training"
+  );
+}
+
+// ---------------------------------------
+ 
+   
 
       let activeTab = "detection";
       let configSaved = false; // Important: controls START button
@@ -262,39 +401,23 @@
       // Webcam
       const video = document.getElementById("cam-video");
       let camStream = null;
+   
+     
+    function captureFrame() {
+    const img = document.getElementById("cam-video");
 
-      async function startCamera() {
-        try {
-          camStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment" },
-            audio: false,
-          });
-          video.srcObject = camStream;
-          await video.play();
-          video.style.display = "block";
-          document.getElementById("no-feed-msg").style.display = "none";
-        } catch (e) {
-          showToast("Camera access denied or unavailable.");
-        }
-      }
-      function stopCamera() {
-        if (camStream) {
-          camStream.getTracks().forEach((t) => t.stop());
-          camStream = null;
-        }
-        video.srcObject = null;
-        video.style.display = "none";
-        document.getElementById("no-feed-msg").style.display = "flex";
-      }
-      function captureFrame() {
-        const canvas = document.getElementById("snap-canvas");
-        const ctx = canvas.getContext("2d");
-        if (!video.videoWidth) return null;
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0);
-        return canvas.toDataURL("image/jpeg", 0.75);
-      }
+      if (!img.src) return null;
+
+      const canvas = document.getElementById("snap-canvas");
+      const ctx = canvas.getContext("2d");
+
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      ctx.drawImage(img, 0, 0);
+
+      return canvas.toDataURL("image/jpeg", 0.75);
+    }
 
       // Defects
       let defectCount = 0;
@@ -347,7 +470,7 @@
       }
 
       /* Detection */
-      let detRunning = false,
+    
         detInterval = null;
       async function startDetection() {
         if (detRunning || !configSaved) return;
@@ -380,7 +503,7 @@
           setText("cnt-defective", "0");
           setText("hdr-defects", "0");
 
-          await startCamera();
+          bridge.startCamera();
           showToast(`Detection started for ${jid}.`, "success");
 
           let i = 0,
@@ -413,7 +536,7 @@
           detRunning = false;
           syncDetectionButtons();
           clearInterval(detInterval);
-          stopCamera();
+          bridge.stopCamera();
           lockOtherTab(false);
           document.getElementById("hdr-status").textContent = "STANDBY";
           document.getElementById("status-dot").style.cssText = "";
@@ -424,66 +547,8 @@
         }
       }
 
-      /* Training - Camera also starts */
-      let trainRunning = false,
-        trainInterval = null,
-        epoch = 0;
-      async function startTraining() {
-        if (trainRunning) return;
-        try {
-          await apiRequest(API_CONFIG.endpoints.startTraining, {
-            method: "POST",
-          });
-
-          trainRunning = true;
-          syncTrainingButtons();
-          epoch = 0;
-          lockOtherTab(true);
-          document.getElementById("hdr-status").textContent = "TRAINING";
-          document.getElementById("status-dot").style.cssText =
-            "background:#8e44ad;box-shadow:0 0 6px #8e44ad;";
-          document.getElementById("train-log").textContent =
-            "Training in progress...";
-
-          await startCamera();
-          showToast("Training started.", "success");
-
-          trainInterval = setInterval(() => {
-            epoch++;
-            const acc = (0.7 + Math.min(epoch * 0.015, 0.28)).toFixed(3);
-            const loss = Math.max(0.07, 0.85 - epoch * 0.025).toFixed(4);
-            setText("train-epochs", String(epoch));
-            setText("train-acc", acc);
-            setText("train-loss", loss);
-            document.getElementById("train-log").textContent =
-              `Epoch ${epoch} - acc: ${acc} | loss: ${loss}`;
-          }, 900);
-        } catch (error) {
-          showToast(error.message || "Unable to start training.", "error");
-        }
-      }
-
-      async function stopTraining() {
-        if (!trainRunning) return;
-        try {
-          await apiRequest(API_CONFIG.endpoints.stopTraining, {
-            method: "POST",
-          });
-
-          trainRunning = false;
-          syncTrainingButtons();
-          clearInterval(trainInterval);
-          stopCamera();
-          lockOtherTab(false);
-          document.getElementById("hdr-status").textContent = "STANDBY";
-          document.getElementById("status-dot").style.cssText = "";
-          document.getElementById("train-log").textContent =
-            epoch > 0 ? `Stopped at epoch ${epoch}.` : "";
-          showToast("Training stopped.", "info");
-        } catch (error) {
-          showToast(error.message || "Unable to stop training.", "error");
-        }
-      }
+      
+  
 
       /* Save Configuration - Enables START button */
       async function saveConfig() {
