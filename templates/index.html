@@ -61,12 +61,8 @@
               autoplay
               muted
               playsinline
-              style="
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                display: none;
-              "
+              class="cam-video"
+              style="display: none"
             >
           </video>
             <canvas id="snap-canvas" style="display: none"></canvas>
@@ -533,11 +529,17 @@
       // Webcam
       const video = document.getElementById("cam-video");
       let camStream = null;
+      const CAMERA_CONSTRAINTS = {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1080 },
+        height: { ideal: 1920 },
+        aspectRatio: { ideal: 9 / 16 },
+      };
 
       async function startCamera() {
         try {
           camStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment" },
+            video: CAMERA_CONSTRAINTS,
             audio: false,
           });
           video.srcObject = camStream;
