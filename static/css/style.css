@@ -240,26 +240,26 @@ header {
   z-index: 5;
 }
 .corner.tl {
-  top: 18px;
-  left: 18px;
+  top: 5px;
+  left: 5px;
   border-right: none;
   border-bottom: none;
 }
 .corner.tr {
-  top: 18px;
-  right: 18px;
+  top: 5px;
+  right: 5px;
   border-left: none;
   border-bottom: none;
 }
 .corner.bl {
-  bottom: 18px;
-  left: 18px;
+  bottom: 5px;
+  left: 5px;
   border-right: none;
   border-top: none;
 }
 .corner.br {
-  bottom: 18px;
-  right: 18px;
+  bottom: 5px;
+  right: 5px;
   border-left: none;
   border-top: none;
 }
